@@ -1,0 +1,105 @@
+from functools import reduce
+
+class ActionChecker:
+
+  @classmethod
+  def correct_action(self, players, player_pos, sb_amount, action, amount=None):
+    if self.is_allin(players[player_pos], action, amount):
+      amount = players[player_pos].stack + players[player_pos].paid_sum()
+    elif self.__is_illegal(players, player_pos, sb_amount, action, amount):
+      action, amount = "fold", 0
+    return action, amount
+
+
+  @classmethod
+  def is_allin(self, player, action, bet_amount):
+    if action == 'call':
+      return bet_amount >= player.stack + player.paid_sum()
+    elif action == 'raise':
+      return bet_amount == player.stack + player.paid_sum()
+    else:
+      return False
+
+
+  @classmethod
+  def need_amount_for_action(self, player, amount):
+    return amount - player.paid_sum()
+
+
+  @classmethod
+  def agree_amount(self, players):
+    last_raise = self.__fetch_last_raise(players)
+    return last_raise["amount"] if last_raise else 0
+
+
+  @classmethod
+  def legal_actions(self, players, player_pos, sb_amount):
+    min_raise = self.__min_raise_amount(players, sb_amount)
+    max_raise = players[player_pos].stack + players[player_pos].paid_sum()
+    agree_amount = self.agree_amount(players)
+    if max_raise < min_raise:
+      if max_raise > agree_amount:
+        min_raise = max_raise
+      else:
+        min_raise = max_raise = -1
+    return [
+        { "action" : "fold" , "amount" : 0 },
+        { "action" : "call" , "amount" : min(agree_amount, players[player_pos].stack + players[player_pos].paid_sum()) },
+        { "action" : "raise", "amount" : { "min": min_raise, "max": max_raise } }
+    ]
+
+  @classmethod
+  def _is_legal(self, players, player_pos, sb_amount, action, amount=None):
+    return not self.__is_illegal(players, player_pos, sb_amount, action, amount)
+
+  @classmethod
+  def __is_illegal(self, players, player_pos, sb_amount, action, amount=None):
+    if action == 'fold':
+      return False
+    elif action == 'call':
+      return self.__is_short_of_money(players[player_pos], amount)\
+          or self.__is_illegal_call(players, amount)
+    elif action == 'raise':
+      return self.__is_short_of_money(players[player_pos], amount) \
+          or self.__is_illegal_raise(players, amount, sb_amount)
+
+  @classmethod
+  def __is_illegal_call(self, players, amount):
+    return amount != self.agree_amount(players)
+
+  @classmethod
+  def __is_illegal_raise(self, players, amount, sb_amount):
+    return self.__min_raise_amount(players, sb_amount) > amount
+
+  @classmethod
+  def __min_raise_amount(self, players, sb_amount):
+    raise_histories = self.__raise_histories(players)
+
+    min_add_amount = sb_amount*2
+    max_amount = 0
+    for h in raise_histories:
+      min_add_amount = max(min_add_amount, h['add_amount'])
+      max_amount = max(max_amount, h['amount'])
+
+    return max_amount + min_add_amount
+
+  @classmethod
+  def __is_short_of_money(self, player, amount):
+    return player.stack < amount - player.paid_sum()
+
+  @classmethod
+  def __fetch_last_raise(self, players, by='amount'):
+    all_histories = [p.action_histories for p in players]
+    all_histories = reduce(lambda acc, e: acc + e, all_histories)  # flatten
+    raise_histories = [h for h in all_histories if h["action"] in ["RAISE", "SMALLBLIND", "BIGBLIND"]]
+    if len(raise_histories) == 0:
+      return None
+    else:
+      return max(raise_histories, key=lambda h: h[by])  # maxby
+
+  @classmethod
+  def __raise_histories(self, players):
+    all_histories = [p.action_histories for p in players]
+    all_histories = reduce(lambda acc, e: acc + e, all_histories)  # flatten
+    raise_histories = [h for h in all_histories if h["action"] in ["RAISE", "SMALLBLIND", "BIGBLIND"]]
+    return raise_histories

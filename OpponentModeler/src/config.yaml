@@ -1,0 +1,18 @@
+ante: 0
+blind_structure: null
+initial_stack: 1500
+max_round: 50
+small_blind: 15
+ai_players:
+- name: DeepFish
+  path: /Users/home/PycharmProjects/pokerbot/OpponentModeler/src/setup_ai.py
+- name: DeeperFish
+  path: /Users/home/PycharmProjects/pokerbot/OpponentModeler/src/setup_ai.py
+- name: EvenDeeperFish
+  path: /Users/home/PycharmProjects/pokerbot/OpponentModeler/src/setup_ai.py
+- name: FishPlayer
+  path: /Users/home/PycharmProjects/pokerbot/OpponentModeler/src/setup_ai.py
+- name: HonestPlayer
+  path: /Users/home/PycharmProjects/pokerbot/OpponentModeler/src/setup_ai.py
+- name: BluffingPlayer
+  path: /Users/home/PycharmProjects/pokerbot/OpponentModeler/src/setup_ai.py
